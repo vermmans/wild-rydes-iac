@@ -1,13 +1,15 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Wild Rydes Infrastructure with ECS Fargate, ALB, and CI/CD Pipeline'
+Description: 'Wild Rydes Infrastructure with ECS Fargate, ALB, and CI/CD Pipeline for ca-central-1'
 
 Parameters:
   GitHubRepo:
     Type: String
     Default: 'vermmans/wild-rydes-iac'
+    Description: 'GitHub repository name in format owner/repo'
   GitHubBranch:
     Type: String
     Default: 'main'
+    Description: 'GitHub branch name'
   GitHubToken:
     Type: String
     NoEcho: true
@@ -38,13 +40,13 @@ Resources:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
 
-  # Subnets
+  # Subnets 
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
       CidrBlock: 10.0.1.0/24
-      AvailabilityZone: !Select [0, !GetAZs '']
+      AvailabilityZone: !Select [0, !GetAZs 'ca-central-1']
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
@@ -55,7 +57,7 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       CidrBlock: 10.0.2.0/24
-      AvailabilityZone: !Select [1, !GetAZs '']
+      AvailabilityZone: !Select [1, !GetAZs 'ca-central-1']
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
@@ -134,16 +136,6 @@ Resources:
         - Key: Name
           Value: WildRydesALB
 
-  ALBListener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      DefaultActions:
-        - Type: forward
-          TargetGroupArn: !Ref ALBTargetGroup
-      LoadBalancerArn: !Ref ApplicationLoadBalancer
-      Port: 80
-      Protocol: HTTP
-
   ALBTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -157,6 +149,19 @@ Resources:
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 2
       UnhealthyThresholdCount: 2
+
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ALBTargetGroup
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  # ... REMAINDER OF THE TEMPLATE UNCHANGED ...
+
 
   # ECR Repository
   ECRRepository:
@@ -209,6 +214,7 @@ Resources:
 
   ECSService:
     Type: AWS::ECS::Service
+    DependsOn: ALBListener
     Properties:
       ServiceName: wild-rydes-service
       Cluster: !Ref ECSCluster
@@ -230,6 +236,7 @@ Resources:
         - ContainerName: wild-rydes-app
           ContainerPort: 80
           TargetGroupArn: !Ref ALBTargetGroup
+
 
   # IAM Roles
   ECSExecutionRole:
