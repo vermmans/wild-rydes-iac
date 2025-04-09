@@ -27,7 +27,7 @@ Resources:
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: verma-vpc
+          Value: Verma-vpc
 
   VermaPublicSubnet1:
     Type: AWS::EC2::Subnet
@@ -40,7 +40,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: verma-public-subnet-1
+          Value: Verma-public-subnet-1
 
   VermaPublicSubnet2:
     Type: AWS::EC2::Subnet
@@ -53,7 +53,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: verma-public-subnet-2
+          Value: Verma-public-subnet-2
 
   VermaPrivateSubnet1:
     Type: AWS::EC2::Subnet
@@ -65,7 +65,7 @@ Resources:
       AvailabilityZone: ca-central-1a
       Tags:
         - Key: Name
-          Value: verma-private-subnet-1
+          Value: Verma-private-subnet-1
 
   VermaPrivateSubnet2:
     Type: AWS::EC2::Subnet
@@ -77,14 +77,14 @@ Resources:
       AvailabilityZone: ca-central-1b
       Tags:
         - Key: Name
-          Value: verma-private-subnet-2
+          Value: Verma-private-subnet-2
 
   VermaInternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
         - Key: Name
-          Value: verma-igw
+          Value: Verma-igw
 
   VermaVPCGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -141,7 +141,7 @@ Resources:
       VpcId: !Ref VermaVPC
       Tags:
         - Key: Name
-          Value: verma-private-rt
+          Value: Verma-private-rt
 
   VermaNATGatewayEIP:
     Type: AWS::EC2::EIP
@@ -158,7 +158,7 @@ Resources:
       SubnetId: !Ref VermaPublicSubnet1
       Tags:
         - Key: Name
-          Value: verma-nat
+          Value: Verma-nat
 
   VermaPrivateRoute:
     Type: AWS::EC2::Route
@@ -203,7 +203,7 @@ Resources:
           CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
-          Value: verma-alb-sg
+          Value: Verma-alb-sg
 
   VermaECSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -220,7 +220,7 @@ Resources:
           SourceSecurityGroupId: !Ref VermaALBSecurityGroup
       Tags:
         - Key: Name
-          Value: verma-ecs-sg
+          Value: Verma-ecs-sg
 
   # --- Application Load Balancer ---
   VermaLoadBalancer:
@@ -230,7 +230,7 @@ Resources:
       - VermaPublicSubnet2
       - VermaALBSecurityGroup
     Properties:
-      Name: verma-alb
+      Name: Verma-alb
       Subnets:
         - !Ref VermaPublicSubnet1
         - !Ref VermaPublicSubnet2
@@ -244,7 +244,7 @@ Resources:
     DependsOn:
       - VermaVPC
     Properties:
-      Name: verma-tg
+      Name: Verma-tg
       Port: 3000
       Protocol: HTTP
       VpcId: !Ref VermaVPC
@@ -268,13 +268,13 @@ Resources:
   VermaECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
-      ClusterName: verma-ecs-cluster
+      ClusterName: Verma-ecs-cluster
 
   # --- CloudWatch Log Group for ECS Tasks ---
   VermaLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: /ecs/verma-todo-app
+      LogGroupName: /ecs/Verma-todo-app
       RetentionInDays: 7
 
   # --- ECS Task Definition ---
@@ -284,7 +284,7 @@ Resources:
       - VermaTaskExecutionRole
       - VermaLogGroup
     Properties:
-      Family: verma-todo-app-task
+      Family: Verma-todo-app-task
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
@@ -293,7 +293,7 @@ Resources:
       ExecutionRoleArn: !GetAtt VermaTaskExecutionRole.Arn
       ContainerDefinitions:
         - Name: todo-app
-          Image: 827410396373.dkr.ecr.ca-central-1.amazonaws.com/verma-todo-app-repo:latest
+          Image: 827410396373.dkr.ecr.ca-central-1.amazonaws.com/Verma-todo-app-repo:latest
           PortMappings:
             - ContainerPort: 3000
           Essential: true
@@ -327,7 +327,7 @@ Resources:
       - VermaListener
     Properties:
       Cluster: !Ref VermaECSCluster
-      ServiceName: verma-ecs-service
+      ServiceName: Verma-ecs-service
       TaskDefinition: !Ref VermaTaskDefinition
       DesiredCount: 1
       LaunchType: FARGATE
@@ -375,11 +375,11 @@ Resources:
     DependsOn:
       - VermaCodeBuildRole
     Properties:
-      Name: verma-codebuild
+      Name: Verma-codebuild
       ServiceRole: !GetAtt VermaCodeBuildRole.Arn
       Artifacts:
         Type: S3
-        Location: !Sub verma-codepipeline-artifacts-${AWS::AccountId}
+        Location: !Sub Verma-codepipeline-artifacts-${AWS::AccountId}
         Name: BuildArtifact
         NamespaceType: NONE
         Packaging: ZIP
@@ -394,7 +394,7 @@ Resources:
           - Name: AWS_ACCOUNT_ID
             Value: !Ref AWS::AccountId
           - Name: IMAGE_REPO_NAME
-            Value: verma-todo-app-repo
+            Value: Verma-todo-app-repo
           - Name: IMAGE_TAG
             Value: latest
       Source:
@@ -437,7 +437,7 @@ Resources:
       RoleArn: !GetAtt VermaCodePipelineRole.Arn
       ArtifactStore:
         Type: S3
-        Location: !Sub verma-codepipeline-artifacts-${AWS::AccountId}
+        Location: !Sub Verma-codepipeline-artifacts-${AWS::AccountId}
       Stages:
         - Name: Source
           Actions:
@@ -495,7 +495,7 @@ Resources:
   AlarmSNS:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: verma-cloudwatch-alarms
+      TopicName: Verma-cloudwatch-alarms
 
      # --- SNS Subscription ---
   AlarmSNSSubscription:
@@ -511,16 +511,16 @@ Resources:
   DeploymentFailureAlarm:
     Type: AWS::CloudWatch::Alarm
     DependsOn:
-      - vermaCodePipeline
+      - VermaCodePipeline
       - AlarmSNS
     Properties:
-      AlarmName: vermacloudwatchDeploymentFailureAlarm
+      AlarmName: VermacloudwatchDeploymentFailureAlarm
       AlarmDescription: Alarm for CodePipeline deployment failures
       Namespace: AWS/CodePipeline
       MetricName: PipelineExecutionFailed
       Dimensions:
         - Name: PipelineName
-          Value: !Ref vermaCodePipeline
+          Value: !Ref VermaCodePipeline
       Statistic: Sum
       Period: 300
       EvaluationPeriods: 1
@@ -533,4 +533,4 @@ Resources:
 Outputs:
   LoadBalancerURL:
     Description: URL of the Application Load Balancer
-    Value: !Sub http://${vermaLoadBalancer.DNSName}
+    Value: !Sub http://${VermaLoadBalancer.DNSName}
