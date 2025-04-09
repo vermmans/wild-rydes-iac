@@ -1,23 +1,25 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Wild Rydes Infrastructure with ECS Fargate, ALB, and CI/CD Pipeline for ca-central-1'
+Description: Verma Assignment - AWS ECS Fargate Deployment with CI/CD and Monitoring
 
 Parameters:
+  GitHubOwner:
+    Type: String
+    Description: Your GitHub username
   GitHubRepo:
     Type: String
-    Default: 'vermmans/wild-rydes-iac'
-    Description: 'GitHub repository name in format owner/repo'
+    Default: todo-app
+    Description: GitHub repository name
   GitHubBranch:
     Type: String
-    Default: 'main'
-    Description: 'GitHub branch name'
+    Default: main
+    Description: GitHub branch name
   GitHubToken:
     Type: String
     NoEcho: true
-    Description: 'GitHub OAuth token with repo access'
+    Description: GitHub Personal Access Token (store in AWS Secrets Manager or provide manually)
 
 Resources:
-  # VPC Resources
-  VPC:
+  VermaVPC:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: 10.0.0.0/16
@@ -25,78 +27,175 @@ Resources:
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: WildRydesVPC
+          Value: verma-vpc
 
-  InternetGateway:
+  VermaPublicSubnet1:
+    Type: AWS::EC2::Subnet
+    DependsOn:
+      - VermaVPC
+    Properties:
+      VpcId: !Ref VermaVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: ca-central-1a
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: verma-public-subnet-1
+
+  VermaPublicSubnet2:
+    Type: AWS::EC2::Subnet
+    DependsOn:
+      - VermaVPC
+    Properties:
+      VpcId: !Ref VermaVPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: ca-central-1b
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: verma-public-subnet-2
+
+  VermaPrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    DependsOn:
+      - VermaVPC
+    Properties:
+      VpcId: !Ref VermaVPC
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: ca-central-1a
+      Tags:
+        - Key: Name
+          Value: verma-private-subnet-1
+
+  VermaPrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    DependsOn:
+      - VermaVPC
+    Properties:
+      VpcId: !Ref VermaVPC
+      CidrBlock: 10.0.4.0/24
+      AvailabilityZone: ca-central-1b
+      Tags:
+        - Key: Name
+          Value: verma-private-subnet-2
+
+  VermaInternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
         - Key: Name
-          Value: WildRydesIGW
+          Value: verma-igw
 
-  VPCGatewayAttachment:
+  VermaVPCGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
+    DependsOn:
+      - VermaVPC
+      - VermaInternetGateway
     Properties:
-      VpcId: !Ref VPC
-      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VermaVPC
+      InternetGatewayId: !Ref VermaInternetGateway
 
-  # Subnets 
-  PublicSubnet1:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPC
-      CidrBlock: 10.0.1.0/24
-      AvailabilityZone: !Select [0, !GetAZs 'ca-central-1']
-      MapPublicIpOnLaunch: true
-      Tags:
-        - Key: Name
-          Value: WildRydesPublicSubnet1
-
-  PublicSubnet2:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPC
-      CidrBlock: 10.0.2.0/24
-      AvailabilityZone: !Select [1, !GetAZs 'ca-central-1']
-      MapPublicIpOnLaunch: true
-      Tags:
-        - Key: Name
-          Value: WildRydesPublicSubnet2
-
-  # Route Tables
-  PublicRouteTable:
+  VermaPublicRouteTable:
     Type: AWS::EC2::RouteTable
+    DependsOn:
+      - VermaVPC
     Properties:
-      VpcId: !Ref VPC
+      VpcId: !Ref VermaVPC
       Tags:
         - Key: Name
-          Value: WildRydesPublicRT
+          Value: verma-public-rt
 
-  PublicRoute:
+  VermaPublicRoute:
     Type: AWS::EC2::Route
+    DependsOn:
+      - VermaPublicRouteTable
+      - VermaVPCGatewayAttachment
     Properties:
-      RouteTableId: !Ref PublicRouteTable
+      RouteTableId: !Ref VermaPublicRouteTable
       DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref InternetGateway
+      GatewayId: !Ref VermaInternetGateway
 
-  SubnetRouteTableAssociation1:
+  VermaPublicSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
+    DependsOn:
+      - VermaPublicSubnet1
+      - VermaPublicRouteTable
     Properties:
-      SubnetId: !Ref PublicSubnet1
-      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref VermaPublicSubnet1
+      RouteTableId: !Ref VermaPublicRouteTable
 
-  SubnetRouteTableAssociation2:
+  VermaPublicSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
+    DependsOn:
+      - VermaPublicSubnet2
+      - VermaPublicRouteTable
     Properties:
-      SubnetId: !Ref PublicSubnet2
-      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref VermaPublicSubnet2
+      RouteTableId: !Ref VermaPublicRouteTable
 
-  # Security Groups
-  ALBSecurityGroup:
+  VermaPrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    DependsOn:
+      - VermaVPC
+    Properties:
+      VpcId: !Ref VermaVPC
+      Tags:
+        - Key: Name
+          Value: verma-private-rt
+
+  VermaNATGatewayEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  VermaNATGateway:
+    Type: AWS::EC2::NatGateway
+    DependsOn:
+      - VermaNATGatewayEIP
+      - VermaPublicSubnet1
+    Properties:
+      AllocationId: !GetAtt VermaNATGatewayEIP.AllocationId
+      SubnetId: !Ref VermaPublicSubnet1
+      Tags:
+        - Key: Name
+          Value: verma-nat
+
+  VermaPrivateRoute:
+    Type: AWS::EC2::Route
+    DependsOn:
+      - VermaPrivateRouteTable
+      - VermaNATGateway
+    Properties:
+      RouteTableId: !Ref VermaPrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref VermaNATGateway
+
+  VermaPrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DependsOn:
+      - VermaPrivateSubnet1
+      - VermaPrivateRouteTable
+    Properties:
+      SubnetId: !Ref VermaPrivateSubnet1
+      RouteTableId: !Ref VermaPrivateRouteTable
+
+  VermaPrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DependsOn:
+      - VermaPrivateSubnet2
+      - VermaPrivateRouteTable
+    Properties:
+      SubnetId: !Ref VermaPrivateSubnet2
+      RouteTableId: !Ref VermaPrivateRouteTable
+
+  # --- Security Groups ---
+  VermaALBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
+    DependsOn:
+      - VermaVPC
     Properties:
-      GroupDescription: 'Security group for ALB'
-      VpcId: !Ref VPC
+      GroupDescription: Security group for Verma ALB
+      VpcId: !Ref VermaVPC
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
@@ -104,137 +203,151 @@ Resources:
           CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
-          Value: WildRydesALBSG
+          Value: verma-alb-sg
 
-  ECSSecurityGroup:
+  VermaECSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
+    DependsOn:
+      - VermaVPC
+      - VermaALBSecurityGroup
     Properties:
-      GroupDescription: 'Security group for ECS tasks'
-      VpcId: !Ref VPC
+      GroupDescription: Security group for Verma ECS tasks
+      VpcId: !Ref VermaVPC
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          SourceSecurityGroupId: !Ref ALBSecurityGroup
+          FromPort: 3000
+          ToPort: 3000
+          SourceSecurityGroupId: !Ref VermaALBSecurityGroup
       Tags:
         - Key: Name
-          Value: WildRydesECSSG
+          Value: verma-ecs-sg
 
-  # ALB Resources
-  ApplicationLoadBalancer:
+  # --- Application Load Balancer ---
+  VermaLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    DependsOn:
+      - VermaPublicSubnet1
+      - VermaPublicSubnet2
+      - VermaALBSecurityGroup
     Properties:
-      Name: wild-rydes-alb
+      Name: verma-alb
+      Subnets:
+        - !Ref VermaPublicSubnet1
+        - !Ref VermaPublicSubnet2
+      SecurityGroups:
+        - !Ref VermaALBSecurityGroup
       Scheme: internet-facing
       Type: application
-      SecurityGroups:
-        - !Ref ALBSecurityGroup
-      Subnets:
-        - !Ref PublicSubnet1
-        - !Ref PublicSubnet2
-      Tags:
-        - Key: Name
-          Value: WildRydesALB
 
-  ALBTargetGroup:
+  VermaTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn:
+      - VermaVPC
     Properties:
-      Name: wild-rydes-tg
+      Name: verma-tg
+      Port: 3000
+      Protocol: HTTP
+      VpcId: !Ref VermaVPC
+      TargetType: ip
+      HealthCheckPath: /
+
+  VermaListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn:
+      - VermaLoadBalancer
+      - VermaTargetGroup
+    Properties:
+      LoadBalancerArn: !Ref VermaLoadBalancer
       Port: 80
       Protocol: HTTP
-      TargetType: ip
-      VpcId: !Ref VPC
-      HealthCheckPath: /
-      HealthCheckIntervalSeconds: 30
-      HealthCheckTimeoutSeconds: 5
-      HealthyThresholdCount: 2
-      UnhealthyThresholdCount: 2
-
-  ALBListener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
       DefaultActions:
         - Type: forward
-          TargetGroupArn: !Ref ALBTargetGroup
-      LoadBalancerArn: !Ref ApplicationLoadBalancer
-      Port: 80
-      Protocol: HTTP
+          TargetGroupArn: !Ref VermaTargetGroup
 
-  # ECR Repository
-  ECRRepository:
-    Type: AWS::ECR::Repository
-    Properties:
-      RepositoryName: wild-rydes-app
-      ImageTagMutability: MUTABLE
-      ImageScanningConfiguration:
-        ScanOnPush: true
-
-  # ECS Resources
-  ECSCluster:
+  # --- ECS Cluster ---
+  VermaECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
-      ClusterName: wild-rydes-cluster
-      CapacityProviders:
-        - FARGATE
-      DefaultCapacityProviderStrategy:
-        - CapacityProvider: FARGATE
-          Weight: 1
-      Tags:
-        - Key: Name
-          Value: WildRydesCluster
+      ClusterName: verma-ecs-cluster
 
-  ECSTaskDefinition:
-    Type: AWS::ECS::TaskDefinition
+  # --- CloudWatch Log Group for ECS Tasks ---
+  VermaLogGroup:
+    Type: AWS::Logs::LogGroup
     Properties:
-      Family: wild-rydes-task
+      LogGroupName: /ecs/verma-todo-app
+      RetentionInDays: 7
+
+  # --- ECS Task Definition ---
+  VermaTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    DependsOn:
+      - VermaTaskExecutionRole
+      - VermaLogGroup
+    Properties:
+      Family: verma-todo-app-task
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
-      Cpu: 256
-      Memory: 512
-      ExecutionRoleArn: !GetAtt ECSExecutionRole.Arn
-      TaskRoleArn: !GetAtt ECSTaskRole.Arn
+      Cpu: '256'
+      Memory: '512'
+      ExecutionRoleArn: !GetAtt VermaTaskExecutionRole.Arn
       ContainerDefinitions:
-        - Name: wild-rydes-app
-          Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/wild-rydes-app:latest
-          Essential: true
+        - Name: todo-app
+          Image: 827410396373.dkr.ecr.ca-central-1.amazonaws.com/verma-todo-app-repo:latest
           PortMappings:
-            - ContainerPort: 80
-              HostPort: 80
-              Protocol: tcp
+            - ContainerPort: 3000
+          Essential: true
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Ref CloudWatchLogsGroup
-              awslogs-region: !Ref AWS::Region
-              awslogs-stream-prefix: ecs
+              awslogs-group: !Ref VermaLogGroup
+              awslogs-region: ca-central-1
+              awslogs-stream-prefix: todo-app
 
-  ECSService:
-    Type: AWS::ECS::Service
+  VermaTaskExecutionRole:
+    Type: AWS::IAM::Role
     Properties:
-      ServiceName: wild-rydes-service
-      Cluster: !Ref ECSCluster
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  # --- ECS Service ---
+  VermaECSService:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - VermaECSCluster
+      - VermaTaskDefinition
+      - VermaECSSecurityGroup
+      - VermaListener
+    Properties:
+      Cluster: !Ref VermaECSCluster
+      ServiceName: verma-ecs-service
+      TaskDefinition: !Ref VermaTaskDefinition
+      DesiredCount: 1
       LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets:
+            - !Ref VermaPrivateSubnet1
+            - !Ref VermaPrivateSubnet2
+          SecurityGroups:
+            - !Ref VermaECSSecurityGroup
+      LoadBalancers:
+        - ContainerName: todo-app
+          ContainerPort: 3000
+          TargetGroupArn: !Ref VermaTargetGroup
       DeploymentConfiguration:
         MaximumPercent: 200
         MinimumHealthyPercent: 100
-      DesiredCount: 2
-      TaskDefinition: !Ref ECSTaskDefinition
-      NetworkConfiguration:
-        AwsvpcConfiguration:
-          AssignPublicIp: ENABLED
-          SecurityGroups:
-            - !Ref ECSSecurityGroup
-          Subnets:
-            - !Ref PublicSubnet1
-            - !Ref PublicSubnet2
-      LoadBalancers:
-        - ContainerName: wild-rydes-app
-          ContainerPort: 80
-          TargetGroupArn: !Ref ALBTargetGroup
 
-  # IAM Roles
-  ECSExecutionRole:
+  # --- CodeBuild Role ---
+  VermaCodeBuildRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -242,67 +355,34 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service: ecs-tasks.amazonaws.com
+              Service: codebuild.amazonaws.com
             Action: sts:AssumeRole
-      Path: /
       Policies:
-        - PolicyName: ecs-execution-policy
+        - PolicyName: VermaCodeBuildPolicy
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
               - Effect: Allow
                 Action:
-                  - ecr:GetAuthorizationToken
-                  - ecr:BatchCheckLayerAvailability
-                  - ecr:GetDownloadUrlForLayer
-                  - ecr:BatchGetImage
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
+                  - ecr:*
+                  - logs:*
+                  - s3:*
                 Resource: '*'
 
-  ECSTaskRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: ecs-tasks.amazonaws.com
-            Action: sts:AssumeRole
-      Path: /
-      Policies:
-        - PolicyName: ecs-task-policy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - s3:GetObject
-                  - dynamodb:GetItem
-                  - dynamodb:PutItem
-                Resource: '*'
-
-  # CloudWatch Logs
-  CloudWatchLogsGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /ecs/wild-rydes-app
-      RetentionInDays: 7
-
-  Resources:
-  # Example resource: CodeBuild Project
-  CodeBuildProject:
+  # --- CodeBuild Project ---
+  VermaCodeBuildProject:
     Type: AWS::CodeBuild::Project
+    DependsOn:
+      - VermaCodeBuildRole
     Properties:
-      Name: wild-rydes-codebuild
-      Description: 'Build project for Wild Rydes application'
-      ServiceRole: !GetAtt CodeBuildRole.Arn
-      Source:
-        Type: CODEPIPELINE
-        BuildSpec: buildspec.yml
+      Name: verma-codebuild
+      ServiceRole: !GetAtt VermaCodeBuildRole.Arn
       Artifacts:
-        Type: CODEPIPELINE
+        Type: S3
+        Location: !Sub verma-codepipeline-artifacts-${AWS::AccountId}
+        Name: BuildArtifact
+        NamespaceType: NONE
+        Packaging: ZIP
       Environment:
         Type: LINUX_CONTAINER
         ComputeType: BUILD_GENERAL1_SMALL
@@ -310,24 +390,147 @@ Resources:
         PrivilegedMode: true
         EnvironmentVariables:
           - Name: AWS_DEFAULT_REGION
-            Value: !Ref AWS::Region
-          - Name: GITHUB_TOKEN
-            Value: !Ref GitHubToken
+            Value: ca-central-1
+          - Name: AWS_ACCOUNT_ID
+            Value: !Ref AWS::AccountId
           - Name: IMAGE_REPO_NAME
-            Value: !Ref ECRRepository
+            Value: verma-todo-app-repo
           - Name: IMAGE_TAG
             Value: latest
-          - Name: ECS_SERVICE
-            Value: !Ref ECSService
-          - Name: ECS_CLUSTER
-            Value: !Ref ECSCluster
-          - Name: CONTAINER_NAME
-            Value: wild-rydes-app
-      LogsConfig:
-        CloudWatchLogs:
-          Status: ENABLED
-          GroupName: /codebuild/wild-rydes
-          StreamName: build-log
-      Tags:
-        - Key: Name
-          Value: WildRydesCodeBuild
+      Source:
+        Type: GITHUB
+        Location: !Sub https://github.com/${GitHubOwner}/${GitHubRepo}.git
+        BuildSpec: buildspec.yml
+
+  # --- CodePipeline Role ---
+  VermaCodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: VermaCodePipelinePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - codebuild:*
+                  - ecs:*
+                  - s3:*
+                  - iam:PassRole
+                Resource: '*'
+
+  # --- CodePipeline ---
+  VermaCodePipeline:
+    Type: AWS::CodePipeline::Pipeline
+    DependsOn:
+      - VermaCodePipelineRole
+      - VermaCodeBuildProject
+      - VermaECSService
+    Properties:
+      RoleArn: !GetAtt VermaCodePipelineRole.Arn
+      ArtifactStore:
+        Type: S3
+        Location: !Sub verma-codepipeline-artifacts-${AWS::AccountId}
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: Source
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Provider: GitHub
+                Version: '1'
+              OutputArtifacts:
+                - Name: SourceArtifact
+              Configuration:
+                Owner: !Ref GitHubOwner
+                Repo: !Ref GitHubRepo
+                Branch: !Ref GitHubBranch
+                OAuthToken: !Ref GitHubToken
+        - Name: Approval
+          Actions:
+            - Name: ManualApproval
+              ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Provider: Manual
+                Version: '1'
+        - Name: Build
+          Actions:
+            - Name: Build
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: '1'
+              InputArtifacts:
+                - Name: SourceArtifact
+              OutputArtifacts:
+                - Name: BuildArtifact
+              Configuration:
+                ProjectName: !Ref VermaCodeBuildProject
+        - Name: Deploy
+          Actions:
+            - Name: Deploy
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: ECS
+                Version: '1'
+              InputArtifacts:
+                - Name: BuildArtifact
+              Configuration:
+                ClusterName: !Ref VermaECSCluster
+                ServiceName: !Ref VermaECSService
+                FileName: imagedefinitions.json
+
+  # --- SNS Topic for CloudWatch Alarm ---
+  AlarmSNS:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: verma-cloudwatch-alarms
+
+     # --- SNS Subscription ---
+  AlarmSNSSubscription:
+    Type: AWS::SNS::Subscription
+    DependsOn:
+      - AlarmSNS
+    Properties:
+      Protocol: email
+      Endpoint: "iammansi3006@gmail.com"
+      TopicArn: !Ref AlarmSNS
+
+  # --- CloudWatch Alarm for Deployment Failures ---
+  DeploymentFailureAlarm:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn:
+      - vermaCodePipeline
+      - AlarmSNS
+    Properties:
+      AlarmName: vermacloudwatchDeploymentFailureAlarm
+      AlarmDescription: Alarm for CodePipeline deployment failures
+      Namespace: AWS/CodePipeline
+      MetricName: PipelineExecutionFailed
+      Dimensions:
+        - Name: PipelineName
+          Value: !Ref vermaCodePipeline
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - !Ref AlarmSNS
+      TreatMissingData: notBreaching
+
+Outputs:
+  LoadBalancerURL:
+    Description: URL of the Application Load Balancer
+    Value: !Sub http://${vermaLoadBalancer.DNSName}
