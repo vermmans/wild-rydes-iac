@@ -309,6 +309,24 @@ Resources:
       PrivilegedMode: true
       EnvironmentVariables:
         - Name: AWS_DEFAULT_REGION
-          Value: !Ref AWS::Region  # This ensures that the region is correctly passed
+          Value: !Ref AWS::Region  # Use the current region dynamically
         - Name: GITHUB_TOKEN
-          Value: !Ref GitHubToken  # Assuming you are using GitHub for authentication
+          Value: !Ref GitHubToken  # Pass the GitHub token
+        - Name: IMAGE_REPO_NAME
+          Value: !Ref ECRRepository  # Reference ECR repository
+        - Name: IMAGE_TAG
+          Value: latest  # Set the image tag as "latest"
+        - Name: ECS_SERVICE
+          Value: !Ref ECSService  # Reference ECS Service
+        - Name: ECS_CLUSTER
+          Value: !Ref ECSCluster  # Reference ECS Cluster
+        - Name: CONTAINER_NAME
+          Value: wild-rydes-app  # Reference container name
+    LogsConfig:
+      CloudWatchLogs:
+        Status: ENABLED
+        GroupName: /codebuild/wild-rydes
+        StreamName: build-log
+    Tags:
+      - Key: Name
+        Value: WildRydesCodeBuild
