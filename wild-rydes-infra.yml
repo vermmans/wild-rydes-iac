@@ -145,7 +145,7 @@ Resources:
       Protocol: HTTP
       TargetType: ip
       VpcId: !Ref VPC
-      HealthCheckPath: /
+      HealthCheckPath: /  # Ensure this path is correct and accessible from the app
       HealthCheckIntervalSeconds: 30
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 2
@@ -156,13 +156,10 @@ Resources:
     Properties:
       DefaultActions:
         - Type: forward
-          TargetGroupArn: !Ref ALBTargetGroup
+          TargetGroupArn: !Ref ALBTargetGroup  # Ensure this is the correct target group ARN
       LoadBalancerArn: !Ref ApplicationLoadBalancer
       Port: 80
       Protocol: HTTP
-
-  # ... REMAINDER OF THE TEMPLATE UNCHANGED ...
-
 
   # ECR Repository
   ECRRepository:
