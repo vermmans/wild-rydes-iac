@@ -290,8 +290,8 @@ Resources:
       LogGroupName: /ecs/wild-rydes-app
       RetentionInDays: 7
 
-  # CodeBuild Resources
   Resources:
+  # Example resource: CodeBuild Project
   CodeBuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
