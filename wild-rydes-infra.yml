@@ -368,12 +368,19 @@ Resources:
                   - logs:*
                   - s3:*
                 Resource: '*'
+                
+  VermaCodePipelineArtifactsBucket:
+  Type: AWS::S3::Bucket
+  Properties:
+    BucketName: !Sub verma-codepipeline-artifacts-${AWS::AccountId}
+              
 
   # --- CodeBuild Project ---
   VermaCodeBuildProject:
     Type: AWS::CodeBuild::Project
     DependsOn:
       - VermaCodeBuildRole
+      - VermaCodePipelineArtifactsBucket
     Properties:
       Name: Verma-codebuild
       ServiceRole: !GetAtt VermaCodeBuildRole.Arn
@@ -433,6 +440,7 @@ Resources:
       - VermaCodePipelineRole
       - VermaCodeBuildProject
       - VermaECSService
+      - VermaCodePipelineArtifactsBucket
     Properties:
       RoleArn: !GetAtt VermaCodePipelineRole.Arn
       ArtifactStore:
