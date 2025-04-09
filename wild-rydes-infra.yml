@@ -136,7 +136,6 @@ Resources:
         - Key: Name
           Value: WildRydesALB
 
-  # ALB Target Group
   ALBTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -145,7 +144,7 @@ Resources:
       Protocol: HTTP
       TargetType: ip
       VpcId: !Ref VPC
-      HealthCheckPath: /  # Ensure this path is correct and accessible from the app
+      HealthCheckPath: /
       HealthCheckIntervalSeconds: 30
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 2
@@ -210,7 +209,6 @@ Resources:
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: ecs
 
-  # ECS Service
   ECSService:
     Type: AWS::ECS::Service
     Properties:
@@ -233,7 +231,7 @@ Resources:
       LoadBalancers:
         - ContainerName: wild-rydes-app
           ContainerPort: 80
-          TargetGroupArn: !Ref ALBTargetGroup  # Ensure this points to the correct target group ARN
+          TargetGroupArn: !Ref ALBTargetGroup
 
   # IAM Roles
   ECSExecutionRole:
@@ -311,146 +309,4 @@ Resources:
         PrivilegedMode: true
         EnvironmentVariables:
           - Name: AWS_DEFAULT_REGION
-            Value: !Ref AWS::Region
-          - Name: AWS_ACCOUNT_ID
-            Value: !Ref AWS::AccountId
-          - Name: IMAGE_REPO_NAME
-            Value: !Ref ECRRepository
-          - Name: IMAGE_TAG
-            Value: latest
-          - Name: ECS_SERVICE
-            Value: !Ref ECSService
-          - Name: ECS_CLUSTER
-            Value: !Ref ECSCluster
-          - Name: CONTAINER_NAME
-            Value: wild-rydes-app
-      LogsConfig:
-        CloudWatchLogs:
-          Status: ENABLED
-          GroupName: /codebuild/wild-rydes
-          StreamName: build-log
-      Tags:
-        - Key: Name
-          Value: WildRydesCodeBuild
-
-  CodeBuildRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: codebuild.amazonaws.com
-            Action: sts:AssumeRole
-      Path: /
-      Policies:
-        - PolicyName: codebuild-policy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - logs:CreateLogGroup
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                  - ecr:GetAuthorizationToken
-                  - ecr:BatchCheckLayerAvailability
-                  - ecr:GetDownloadUrlForLayer
-                  - ecr:BatchGetImage
-                  - ecr:InitiateLayerUpload
-                  - ecr:UploadLayerPart
-                  - ecr:CompleteLayerUpload
-                  - ecr:PutImage
-                  - ecs:DescribeServices
-                  - ecs:UpdateService
-                Resource: '*'
-              - Effect: Allow
-                Action:
-                  - s3:GetObject
-                  - s3:GetObjectVersion
-                  - s3:PutObject
-                Resource: !Sub arn:aws:s3:::codepipeline-${AWS::Region}-*/*
-
-  # CodePipeline Resources
-  CodePipeline:
-    Type: AWS::CodePipeline::Pipeline
-    Properties:
-      Name: wild-rydes-pipeline
-      RoleArn: !GetAtt CodePipelineRole.Arn
-      ArtifactStore:
-        Type: S3
-        Location: !Ref ArtifactStoreBucket
-      Stages:
-        - Name: Source
-          Actions:
-            - Name: Source
-              ActionTypeId:
-                Category: Source
-                Owner: ThirdParty
-                Version: 1
-                Provider: GitHub
-              Configuration:
-                Owner: !Select [0, !Split ['/', !Ref GitHubRepo]]
-                Repo: !Select [1, !Split ['/', !Ref GitHubRepo]]
-                Branch: !Ref GitHubBranch
-                OAuthToken: !Ref GitHubToken
-              OutputArtifacts:
-                - Name: SourceArtifact
-              RunOrder: 1
-        - Name: Build
-          Actions:
-            - Name: Build
-              ActionTypeId:
-                Category: Build
-                Owner: AWS
-                Version: 1
-                Provider: CodeBuild
-              Configuration:
-                ProjectName: !Ref CodeBuildProject
-              InputArtifacts:
-                - Name: SourceArtifact
-              OutputArtifacts:
-                - Name: BuildArtifact
-              RunOrder: 1
-        - Name: Deploy
-          Actions:
-            - Name: Deploy
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Version: 1
-                Provider: ECS
-              Configuration:
-                ClusterName: !Ref ECSCluster
-                ServiceName: !Ref ECSService
-                FileName: imagedefinitions.json
-              InputArtifacts:
-                - Name: BuildArtifact
-              RunOrder: 1
-
-  CodePipelineRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: codepipeline.amazonaws.com
-            Action: sts:AssumeRole
-      Path: /
-      Policies:
-        - PolicyName: codepipeline-policy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - codebuild:StartBuild
-                  - codebuild:BatchGetBuilds
-                  - ecs:DescribeServices
-                  - ecs:UpdateService
-                  - ecr:DescribeImages
-                Resource: '*'
-              -
+            Value:
