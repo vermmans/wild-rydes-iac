@@ -291,42 +291,43 @@ Resources:
       RetentionInDays: 7
 
   # CodeBuild Resources
+  Resources:
   CodeBuildProject:
-  Type: AWS::CodeBuild::Project
-  Properties:
-    Name: wild-rydes-codebuild
-    Description: 'Build project for Wild Rydes application'
-    ServiceRole: !GetAtt CodeBuildRole.Arn
-    Source:
-      Type: CODEPIPELINE
-      BuildSpec: buildspec.yml
-    Artifacts:
-      Type: CODEPIPELINE
-    Environment:
-      Type: LINUX_CONTAINER
-      ComputeType: BUILD_GENERAL1_SMALL
-      Image: aws/codebuild/standard:5.0
-      PrivilegedMode: true
-      EnvironmentVariables:
-        - Name: AWS_DEFAULT_REGION
-          Value: !Ref AWS::Region  # Use the current region dynamically
-        - Name: GITHUB_TOKEN
-          Value: !Ref GitHubToken  # Pass the GitHub token
-        - Name: IMAGE_REPO_NAME
-          Value: !Ref ECRRepository  # Reference ECR repository
-        - Name: IMAGE_TAG
-          Value: latest  # Set the image tag as "latest"
-        - Name: ECS_SERVICE
-          Value: !Ref ECSService  # Reference ECS Service
-        - Name: ECS_CLUSTER
-          Value: !Ref ECSCluster  # Reference ECS Cluster
-        - Name: CONTAINER_NAME
-          Value: wild-rydes-app  # Reference container name
-    LogsConfig:
-      CloudWatchLogs:
-        Status: ENABLED
-        GroupName: /codebuild/wild-rydes
-        StreamName: build-log
-    Tags:
-      - Key: Name
-        Value: WildRydesCodeBuild
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: wild-rydes-codebuild
+      Description: 'Build project for Wild Rydes application'
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: buildspec.yml
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:5.0
+        PrivilegedMode: true
+        EnvironmentVariables:
+          - Name: AWS_DEFAULT_REGION
+            Value: !Ref AWS::Region
+          - Name: GITHUB_TOKEN
+            Value: !Ref GitHubToken
+          - Name: IMAGE_REPO_NAME
+            Value: !Ref ECRRepository
+          - Name: IMAGE_TAG
+            Value: latest
+          - Name: ECS_SERVICE
+            Value: !Ref ECSService
+          - Name: ECS_CLUSTER
+            Value: !Ref ECSCluster
+          - Name: CONTAINER_NAME
+            Value: wild-rydes-app
+      LogsConfig:
+        CloudWatchLogs:
+          Status: ENABLED
+          GroupName: /codebuild/wild-rydes
+          StreamName: build-log
+      Tags:
+        - Key: Name
+          Value: WildRydesCodeBuild
