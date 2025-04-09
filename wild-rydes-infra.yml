@@ -136,6 +136,7 @@ Resources:
         - Key: Name
           Value: WildRydesALB
 
+  # ALB Target Group
   ALBTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -212,9 +213,9 @@ Resources:
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: ecs
 
+  # ECS Service
   ECSService:
     Type: AWS::ECS::Service
-    DependsOn: ALBListener
     Properties:
       ServiceName: wild-rydes-service
       Cluster: !Ref ECSCluster
@@ -236,6 +237,7 @@ Resources:
         - ContainerName: wild-rydes-app
           ContainerPort: 80
           TargetGroupArn: !Ref ALBTargetGroup
+
 
 
   # IAM Roles
