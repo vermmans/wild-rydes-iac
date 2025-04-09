@@ -156,7 +156,7 @@ Resources:
     Properties:
       DefaultActions:
         - Type: forward
-          TargetGroupArn: !Ref ALBTargetGroup  # Ensure this is the correct target group ARN
+          TargetGroupArn: !Ref ALBTargetGroup
       LoadBalancerArn: !Ref ApplicationLoadBalancer
       Port: 80
       Protocol: HTTP
@@ -233,9 +233,7 @@ Resources:
       LoadBalancers:
         - ContainerName: wild-rydes-app
           ContainerPort: 80
-          TargetGroupArn: !Ref ALBTargetGroup
-
-
+          TargetGroupArn: !Ref ALBTargetGroup  # Ensure this points to the correct target group ARN
 
   # IAM Roles
   ECSExecutionRole:
@@ -455,79 +453,4 @@ Resources:
                   - ecs:UpdateService
                   - ecr:DescribeImages
                 Resource: '*'
-              - Effect: Allow
-                Action:
-                  - s3:GetObject
-                  - s3:GetObjectVersion
-                  - s3:GetBucketVersioning
-                  - s3:PutObject
-                Resource:
-                  - !Sub arn:aws:s3:::${ArtifactStoreBucket}
-                  - !Sub arn:aws:s3:::${ArtifactStoreBucket}/*
-              - Effect: Allow
-                Action:
-                  - iam:PassRole
-                Resource: '*'
-
-  ArtifactStoreBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub wild-rydes-artifacts-${AWS::AccountId}-${AWS::Region}
-      AccessControl: Private
-      VersioningConfiguration:
-        Status: Enabled
-      LifecycleConfiguration:
-        Rules:
-          - Id: CleanUpOldArtifacts
-            Status: Enabled
-            ExpirationInDays: 30
-            NoncurrentVersionExpirationInDays: 30
-
-  # CloudWatch Alarms
-  PipelineFailedAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: WildRydesPipelineFailed
-      AlarmDescription: 'Alarm when CodePipeline fails'
-      Namespace: AWS/CodePipeline
-      MetricName: FailedExecutions
-      Dimensions:
-        - Name: PipelineName
-          Value: !Ref CodePipeline
-      Statistic: Sum
-      Period: 60
-      EvaluationPeriods: 1
-      Threshold: 1
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: notBreaching
-
-  BuildFailedAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: WildRydesBuildFailed
-      AlarmDescription: 'Alarm when CodeBuild fails'
-      Namespace: AWS/CodeBuild
-      MetricName: FailedBuilds
-      Dimensions:
-        - Name: ProjectName
-          Value: !Ref CodeBuildProject
-      Statistic: Sum
-      Period: 60
-      EvaluationPeriods: 1
-      Threshold: 1
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: notBreaching
-
-Outputs:
-  ALBDNSName:
-    Description: 'Application Load Balancer DNS Name'
-    Value: !GetAtt ApplicationLoadBalancer.DNSName
-  ECSClusterName:
-    Description: 'ECS Cluster Name'
-    Value: !Ref ECSCluster
-  CodePipelineName:
-    Description: 'CodePipeline Name'
-    Value: !Ref CodePipeline
-  ECRRepositoryURI:
-    Description: 'ECR Repository URI'
-    Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepository}
+              -
